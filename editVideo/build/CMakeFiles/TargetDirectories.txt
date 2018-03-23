@@ -1,0 +1,3 @@
+/home/jfoucs/MYGraduationProject/Visual-Odometry/editVideo/build/CMakeFiles/edit_cache.dir
+/home/jfoucs/MYGraduationProject/Visual-Odometry/editVideo/build/CMakeFiles/rebuild_cache.dir
+/home/jfoucs/MYGraduationProject/Visual-Odometry/editVideo/build/CMakeFiles/editVideo.dir
