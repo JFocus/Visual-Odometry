@@ -32,8 +32,9 @@ class VisualOdometry
 public:
     typedef shared_ptr<VisualOdometry> Ptr;
     enum VOState {
-        INITIALIZING=-1,
-        OK=0,
+        INITIALIZING_Set_Ref=-1,
+	INITIALIZING_Get_Depth=0,
+        OK,
         LOST
     };
     
@@ -45,6 +46,7 @@ public:
     cv::Ptr<cv::ORB> orb_;  // orb detector and computer 
     vector<cv::Point3f>     pts_3d_ref_;        // 3d points in reference frame 
     vector<cv::KeyPoint>    keypoints_curr_;    // keypoints in current frame
+    vector<cv::KeyPoint>    keypoints_ref_;     //keypoints in reference frame
     Mat                     descriptors_curr_;  // descriptor in current frame 
     Mat                     descriptors_ref_;   // descriptor in reference frame 
     vector<cv::DMatch>      feature_matches_;
@@ -73,7 +75,9 @@ public: // functions
 protected:  
     // inner operation 
     void extractKeyPoints();
-    void computeDescriptors(); 
+    void computeDescriptors();
+    void extractKeyPoints_ref();
+    void computeDescriptors_ref(); 
     void featureMatching();
     void poseEstimationPnP(); 
     void setRef3DPoints();
@@ -81,6 +85,12 @@ protected:
     void addKeyFrame();
     bool checkEstimatedPose(); 
     bool checkKeyFrame();
+    void VisualOdometry::triangulation ( 
+        const vector< KeyPoint >& keypoint_1, 
+        const vector< KeyPoint >& keypoint_2, 
+        const std::vector< DMatch >& matches,
+        const Mat& R, const Mat& t, 
+        vector< Point3f >& points );
     
 };
 }

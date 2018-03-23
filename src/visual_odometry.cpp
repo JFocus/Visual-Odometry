@@ -30,7 +30,7 @@ namespace myslam
 {
 
 VisualOdometry::VisualOdometry() :
-    state_ ( INITIALIZING ), ref_ ( nullptr ), curr_ ( nullptr ), map_ ( new Map ), num_lost_ ( 0 ), num_inliers_ ( 0 )
+    state_ ( INITIALIZING_Set_Ref ), ref_ ( nullptr ), curr_ ( nullptr ), map_ ( new Map ), num_lost_ ( 0 ), num_inliers_ ( 0 )
 {
     num_of_features_    = Config::get<int> ( "number_of_features" );
     scale_factor_       = Config::get<double> ( "scale_factor" );
@@ -50,19 +50,37 @@ VisualOdometry::~VisualOdometry()
 
 bool VisualOdometry::addFrame ( Frame::Ptr frame )
 {
+    Mat InitR, InitT;
     switch ( state_ )
     {
-    case INITIALIZING:
+    case INITIALIZING_Set_Ref:
     {
-        state_ = OK;
-        curr_ = ref_ = frame;
+        state_ = INITIALIZING_Get_Depth;
+        ref_ = frame;
         map_->insertKeyFrame ( frame );
         // extract features from first frame 
+        extractKeyPoints_ref();
+        computeDescriptors_ref();
+        break;
+    }
+    case INITIALIZING_Get_Depth:
+    {
+        state_ = OK;
+        curr_ = frame;
+        //extract features from second frame
         extractKeyPoints();
         computeDescriptors();
-        // compute the 3d position of features in ref frame 
-        setRef3DPoints();
-        break;
+        featureMatching(); 
+        pose_estimation_2d2d ( keypoints_ref_, keypoints_curr_, feature_matches_ , InitR, InitT );
+        VisualOdometry::triangulation (  keypoints_ref_, keypoints_curr_, feature_matches_,
+            InitR, InitT, 
+            pts_3d_ref_ );
+
+        for ( size_t i=0; i<pts_3d_ref.size(); i++ )
+            {
+               descriptors_ref_.push_back(descriptors_curr_.row(i));
+            }
+
     }
     case OK:
     {
@@ -108,9 +126,19 @@ void VisualOdometry::extractKeyPoints()
     orb_->detect ( curr_->color_, keypoints_curr_ );
 }
 
+void VisualOdometry::extractKeyPoints_ref()
+{
+    orb_->detect ( ref_->color_, keypoints_ref_ );
+}
+
 void VisualOdometry::computeDescriptors()
 {
     orb_->compute ( curr_->color_, keypoints_curr_, descriptors_curr_ );
+}
+
+void VisualOdometry::computeDescriptors_ref()
+{
+    orb_->compute ( ref_->color_, keypoints_ref_, descriptors_ref_ );
 }
 
 void VisualOdometry::featureMatching()
@@ -141,20 +169,13 @@ void VisualOdometry::featureMatching()
 void VisualOdometry::setRef3DPoints()
 {
     // select the features with depth measurements 
-    pts_3d_ref_.clear();
     descriptors_ref_ = Mat();
-    for ( size_t i=0; i<keypoints_curr_.size(); i++ )
+    for ( size_t i=0; i<pts_3d_ref.size(); i++ )
     {
-        double d = ref_->findDepth(keypoints_curr_[i]);               
-        if ( d > 0)
-        {
-            Vector3d p_cam = ref_->camera_->pixel2camera(
-                Vector2d(keypoints_curr_[i].pt.x, keypoints_curr_[i].pt.y), d
-            );
-            pts_3d_ref_.push_back( cv::Point3f( p_cam(0,0), p_cam(1,0), p_cam(2,0) ));
+        
             descriptors_ref_.push_back(descriptors_curr_.row(i));
-        }
     }
+    pts_3d_ref = T_C_r_estimated * pts_3d_ref;
 }
 
 void VisualOdometry::poseEstimationPnP()
@@ -217,5 +238,52 @@ void VisualOdometry::addKeyFrame()
     cout<<"adding a key-frame"<<endl;
     map_->insertKeyFrame ( curr_ );
 }
+
+void VisualOdometry::triangulation ( 
+    const vector< KeyPoint >& keypoint_1, 
+    const vector< KeyPoint >& keypoint_2, 
+    const std::vector< DMatch >& matches,
+    const Mat& R, const Mat& t, 
+    vector< Point3f >& points )
+{
+    Mat T1 = (Mat_<float> (3,4) <<
+        1,0,0,0,
+        0,1,0,0,
+        0,0,1,0);
+    Mat T2 = (Mat_<float> (3,4) <<
+        R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2), t.at<double>(0,0),
+        R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2), t.at<double>(1,0),
+        R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2), t.at<double>(2,0)
+    );
+    
+    Mat K = ( Mat_<double> ( 3,3 ) << 520.9, 0, 325.1, 0, 521.0, 249.7, 0, 0, 1 );
+    vector<Point2f> pts_1, pts_2;
+    for ( DMatch m:matches )
+    {
+        // 将像素坐标转换至相机坐标
+        pts_1.push_back ( pixel2cam( keypoint_1[m.queryIdx].pt, K) );
+        pts_2.push_back ( pixel2cam( keypoint_2[m.trainIdx].pt, K) );
+    }
+    
+    Mat pts_4d;
+    cv::triangulatePoints( T1, T2, pts_1, pts_2, pts_4d );
+    
+    // 转换成非齐次坐标
+    for ( int i=0; i<pts_4d.cols; i++ )
+    {
+        Mat x = pts_4d.col(i);
+        x /= x.at<float>(3,0); // 归一化
+        Point3d p (
+            x.at<float>(0,0), 
+            x.at<float>(1,0), 
+            x.at<float>(2,0) 
+        );
+        points.push_back( p );
+    }
+}
+
+
+
+
 
 }
