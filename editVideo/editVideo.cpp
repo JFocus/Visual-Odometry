@@ -33,7 +33,7 @@ while(!stop)
 //	cv::imshow("Extracted Frame",frame);
 	if( !(FrameNum % 30) )
 	{
-		cv::imwrite("../FrameExtract/" + std::to_string( (FrameNum/30) ) + ".png" , frame);
+		cv::imwrite("/home/jfoucs/MYGraduationProject/FrameExtract/" + std::to_string( (FrameNum/30) ) + ".png" , frame);
 	}
 	
 //	if( cv::waitKey(delay)>=0 )
