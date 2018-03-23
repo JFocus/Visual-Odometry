@@ -24,6 +24,9 @@ cv::namedWindow("Extracted Frame");
 
 int delay = 1000/rate;
 
+ofstream FrameRecord("associate.txt");
+
+
 while(!stop)
 {
 	static int FrameNum;
@@ -34,13 +37,19 @@ while(!stop)
 	if( !(FrameNum % 30) )
 	{
 		cv::imwrite("/home/jfoucs/MYGraduationProject/FrameExtract/" + std::to_string( (FrameNum/30) ) + ".png" , frame);
+		if(FrameRecord.is_open())
+			{
+				FrameRecord << std::to_string((FrameNum/30)) << " " << "/home/jfoucs/MYGraduationProject/FrameExtract/" << std::to_string((FrameNum/30)) << ".png" << "\n";
+			}
 	}
+	
 	
 //	if( cv::waitKey(delay)>=0 )
 //		stop = true;
 
 }
 
+FrameRecord.close();
 capture.release();
 return 0;
 
