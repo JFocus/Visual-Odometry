@@ -17,36 +17,30 @@
  *
  */
 
+#include "myslam/common_include.h"
+#include "myslam/mappoint.h"
 
-#ifndef COMMON_INCLUDE_H
-#define COMMON_INCLUDE_H
+namespace myslam
+{
 
-// define the commonly included file to avoid a long include list
-// for Eigen
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-using Eigen::Vector2d;
-using Eigen::Vector3d;
+MapPoint::MapPoint()
+: id_(-1), pos_(Vector3d(0,0,0)), norm_(Vector3d(0,0,0)), observed_times_(0)
+{
 
-// for Sophus
-#include <sophus/se3.h>
-#include <sophus/so3.h>
-using Sophus::SE3;
-using Sophus::SO3;
+}
 
-// for cv
-#include <opencv2/core/core.hpp>
-using cv::Mat;
+MapPoint::MapPoint ( long id, Vector3d position, Vector3d norm )
+: id_(id), pos_(position), norm_(norm), observed_times_(0)
+{
 
-// std 
-#include <vector>
-#include <list>
-#include <memory>
-#include <string>
-#include <iostream>
-#include <set>
-#include <unordered_map>
-#include <map>
+}
 
-using namespace std; 
-#endif
+MapPoint::Ptr MapPoint::createMapPoint()
+{
+    static long factory_id = 0;
+    return MapPoint::Ptr( 
+        new MapPoint( factory_id++, Vector3d(0,0,0), Vector3d(0,0,0) )
+    );
+}
+
+}

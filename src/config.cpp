@@ -17,36 +17,30 @@
  *
  */
 
+#include "myslam/config.h"
 
-#ifndef COMMON_INCLUDE_H
-#define COMMON_INCLUDE_H
+namespace myslam 
+{
+    
+void Config::setParameterFile( const std::string& filename )
+{
+    if ( config_ == nullptr )
+        config_ = shared_ptr<Config>(new Config);
+    config_->file_ = cv::FileStorage( filename.c_str(), cv::FileStorage::READ );
+    if ( config_->file_.isOpened() == false )
+    {
+        std::cerr<<"parameter file "<<filename<<" does not exist."<<std::endl;
+        config_->file_.release();
+        return;
+    }
+}
 
-// define the commonly included file to avoid a long include list
-// for Eigen
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-using Eigen::Vector2d;
-using Eigen::Vector3d;
+Config::~Config()
+{
+    if ( file_.isOpened() )
+        file_.release();
+}
 
-// for Sophus
-#include <sophus/se3.h>
-#include <sophus/so3.h>
-using Sophus::SE3;
-using Sophus::SO3;
+shared_ptr<Config> Config::config_ = nullptr;
 
-// for cv
-#include <opencv2/core/core.hpp>
-using cv::Mat;
-
-// std 
-#include <vector>
-#include <list>
-#include <memory>
-#include <string>
-#include <iostream>
-#include <set>
-#include <unordered_map>
-#include <map>
-
-using namespace std; 
-#endif
+}

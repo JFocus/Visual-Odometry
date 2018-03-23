@@ -17,36 +17,35 @@
  *
  */
 
+#include "myslam/map.h"
 
-#ifndef COMMON_INCLUDE_H
-#define COMMON_INCLUDE_H
+namespace myslam
+{
 
-// define the commonly included file to avoid a long include list
-// for Eigen
-#include <Eigen/Core>
-#include <Eigen/Geometry>
-using Eigen::Vector2d;
-using Eigen::Vector3d;
+void Map::insertKeyFrame ( Frame::Ptr frame )
+{
+    cout<<"Key frame size = "<<keyframes_.size()<<endl;
+    if ( keyframes_.find(frame->id_) == keyframes_.end() )
+    {
+        keyframes_.insert( make_pair(frame->id_, frame) );
+    }
+    else
+    {
+        keyframes_[ frame->id_ ] = frame;
+    }
+}
 
-// for Sophus
-#include <sophus/se3.h>
-#include <sophus/so3.h>
-using Sophus::SE3;
-using Sophus::SO3;
+void Map::insertMapPoint ( MapPoint::Ptr map_point )
+{
+    if ( map_points_.find(map_point->id_) == map_points_.end() )
+    {
+        map_points_.insert( make_pair(map_point->id_, map_point) );
+    }
+    else 
+    {
+        map_points_[map_point->id_] = map_point;
+    }
+}
 
-// for cv
-#include <opencv2/core/core.hpp>
-using cv::Mat;
 
-// std 
-#include <vector>
-#include <list>
-#include <memory>
-#include <string>
-#include <iostream>
-#include <set>
-#include <unordered_map>
-#include <map>
-
-using namespace std; 
-#endif
+}
