@@ -21,7 +21,9 @@
 #define CAMERA_H
 
 #include "myslam/common_include.h"
+#include <opencv2/core/core.hpp>
 
+using namespace cv;
 namespace myslam
 {
 
@@ -44,6 +46,7 @@ public:
     Vector3d pixel2camera( const Vector2d& p_p, double depth=1 ); 
     Vector3d pixel2world ( const Vector2d& p_p, const SE3& T_c_w, double depth=1 );
     Vector2d world2pixel ( const Vector3d& p_w, const SE3& T_c_w );
+    Point2f pixel2cam2d ( const Point2d& p, const Mat& K );
 
 };
 

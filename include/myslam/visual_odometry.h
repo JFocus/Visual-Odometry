@@ -23,7 +23,12 @@
 #include "myslam/common_include.h"
 #include "myslam/map.h"
 
+#include <opencv2/highgui/highgui.hpp>
 #include <opencv2/features2d/features2d.hpp>
+#include <opencv2/core.hpp>
+#include <opencv2/core/core.hpp>
+using namespace cv;
+
 
 namespace myslam 
 {
@@ -49,6 +54,8 @@ public:
     vector<cv::KeyPoint>    keypoints_ref_;     //keypoints in reference frame
     Mat                     descriptors_curr_;  // descriptor in current frame 
     Mat                     descriptors_ref_;   // descriptor in reference frame 
+    Mat                     InitR_;    //rotation matrix when initializing
+    Mat                     InitT_;    //translation matrix when initializing
     vector<cv::DMatch>      feature_matches_;
     
     SE3 T_c_r_estimated_;  // the estimated pose of current frame 
@@ -85,13 +92,9 @@ protected:
     void addKeyFrame();
     bool checkEstimatedPose(); 
     bool checkKeyFrame();
-    void VisualOdometry::triangulation ( 
-        const vector< KeyPoint >& keypoint_1, 
-        const vector< KeyPoint >& keypoint_2, 
-        const std::vector< DMatch >& matches,
-        const Mat& R, const Mat& t, 
-        vector< Point3f >& points );
-    
+    void triangulation ();
+    void pose_estimation_2d2d ();
+
 };
 }
 

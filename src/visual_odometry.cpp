@@ -17,14 +17,19 @@
  *
  */
 
+#include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
+#include <opencv2/features2d/features2d.hpp>
 #include <algorithm>
 #include <boost/timer.hpp>
+#include <sophus/se3.h>
 
 #include "myslam/config.h"
 #include "myslam/visual_odometry.h"
+#include "myslam/camera.h"
+using namespace cv;
 
 namespace myslam
 {
@@ -50,7 +55,6 @@ VisualOdometry::~VisualOdometry()
 
 bool VisualOdometry::addFrame ( Frame::Ptr frame )
 {
-    Mat InitR, InitT;
     switch ( state_ )
     {
     case INITIALIZING_Set_Ref:
@@ -71,12 +75,10 @@ bool VisualOdometry::addFrame ( Frame::Ptr frame )
         extractKeyPoints();
         computeDescriptors();
         featureMatching(); 
-        pose_estimation_2d2d ( keypoints_ref_, keypoints_curr_, feature_matches_ , InitR, InitT );
-        VisualOdometry::triangulation (  keypoints_ref_, keypoints_curr_, feature_matches_,
-            InitR, InitT, 
-            pts_3d_ref_ );
+        pose_estimation_2d2d ();
+        triangulation ();
 
-        for ( size_t i=0; i<pts_3d_ref.size(); i++ )
+        for ( size_t i=0; i<pts_3d_ref_.size(); i++ )
             {
                descriptors_ref_.push_back(descriptors_curr_.row(i));
             }
@@ -170,12 +172,20 @@ void VisualOdometry::setRef3DPoints()
 {
     // select the features with depth measurements 
     descriptors_ref_ = Mat();
-    for ( size_t i=0; i<pts_3d_ref.size(); i++ )
+    Mat R = ( cv::Mat_ <double>(3,3)<<
+        T_c_r_estimated_.rotation_matrix()(0,1) , T_c_r_estimated_.rotation_matrix()(0,2), T_c_r_estimated_.rotation_matrix()(0,3),
+	T_c_r_estimated_.rotation_matrix()(1,1) , T_c_r_estimated_.rotation_matrix()(1,2), T_c_r_estimated_.rotation_matrix()(1,3),
+	T_c_r_estimated_.rotation_matrix()(2,1) , T_c_r_estimated_.rotation_matrix()(2,2), T_c_r_estimated_.rotation_matrix()(2,3) 
+    );
+    
+    Vector3d T;
+    T << T_c_r_estimated_.translation()(0),T_c_r_estimated_.translation()(1), T_c_r_estimated_.translation()(2);
+    for ( size_t i=0; i<pts_3d_ref_.size(); i++ )
     {
         
             descriptors_ref_.push_back(descriptors_curr_.row(i));
     }
-    pts_3d_ref = T_C_r_estimated * pts_3d_ref;
+    
 }
 
 void VisualOdometry::poseEstimationPnP()
@@ -239,30 +249,28 @@ void VisualOdometry::addKeyFrame()
     map_->insertKeyFrame ( curr_ );
 }
 
-void VisualOdometry::triangulation ( 
-    const vector< KeyPoint >& keypoint_1, 
-    const vector< KeyPoint >& keypoint_2, 
-    const std::vector< DMatch >& matches,
-    const Mat& R, const Mat& t, 
-    vector< Point3f >& points )
+void VisualOdometry::triangulation ()
 {
     Mat T1 = (Mat_<float> (3,4) <<
         1,0,0,0,
         0,1,0,0,
         0,0,1,0);
     Mat T2 = (Mat_<float> (3,4) <<
-        R.at<double>(0,0), R.at<double>(0,1), R.at<double>(0,2), t.at<double>(0,0),
-        R.at<double>(1,0), R.at<double>(1,1), R.at<double>(1,2), t.at<double>(1,0),
-        R.at<double>(2,0), R.at<double>(2,1), R.at<double>(2,2), t.at<double>(2,0)
+        InitR_.at<double>(0,0), InitR_.at<double>(0,1), InitR_.at<double>(0,2), InitT_.at<double>(0,0),
+        InitR_.at<double>(1,0), InitR_.at<double>(1,1), InitR_.at<double>(1,2), InitT_.at<double>(1,0),
+        InitR_.at<double>(2,0), InitR_.at<double>(2,1), InitR_.at<double>(2,2), InitT_.at<double>(2,0)
     );
     
-    Mat K = ( Mat_<double> ( 3,3 ) << 520.9, 0, 325.1, 0, 521.0, 249.7, 0, 0, 1 );
+    Mat K = ( Mat_<double> ( 3,3 ) << 
+        ref_->camera_->fx_, 0, ref_->camera_->cx_,
+        0, ref_->camera_->fy_, ref_->camera_->cy_,
+        0,0,1
+    );
     vector<Point2f> pts_1, pts_2;
-    for ( DMatch m:matches )
+    for ( DMatch m:feature_matches_ )
     {
-        // 将像素坐标转换至相机坐标
-        pts_1.push_back ( pixel2cam( keypoint_1[m.queryIdx].pt, K) );
-        pts_2.push_back ( pixel2cam( keypoint_2[m.trainIdx].pt, K) );
+        pts_1.push_back ( ref_->camera_->pixel2cam2d( keypoints_ref_[m.queryIdx].pt, K) );
+        pts_2.push_back ( curr_->camera_->pixel2cam2d( keypoints_curr_[m.trainIdx].pt, K) );
     }
     
     Mat pts_4d;
@@ -272,18 +280,56 @@ void VisualOdometry::triangulation (
     for ( int i=0; i<pts_4d.cols; i++ )
     {
         Mat x = pts_4d.col(i);
-        x /= x.at<float>(3,0); // 归一化
+        x /= x.at<float>(3,0);
         Point3d p (
             x.at<float>(0,0), 
             x.at<float>(1,0), 
             x.at<float>(2,0) 
         );
-        points.push_back( p );
+       pts_3d_ref_.push_back( p );
     }
 }
 
+void VisualOdometry::pose_estimation_2d2d ()
+{
+    
+    Mat K = ( Mat_<double> ( 3,3 ) <<  
+        ref_->camera_->fx_, 0, ref_->camera_->cx_,
+        0, ref_->camera_->fy_, ref_->camera_->cy_,
+        0,0,1);
+
+  
+    vector<Point2f> points1;
+    vector<Point2f> points2;
+
+    for ( int i = 0; i < ( int ) feature_matches_.size(); i++ )
+    {
+        points1.push_back ( keypoints_curr_[feature_matches_[i].queryIdx].pt );
+        points2.push_back ( keypoints_ref_[feature_matches_[i].trainIdx].pt );
+    }
 
 
+    Mat fundamental_matrix;
+    fundamental_matrix = findFundamentalMat ( points1, points2, CV_FM_8POINT );
+    cout<<"fundamental_matrix is "<<endl<< fundamental_matrix<<endl;
+
+    //-- 计算本质矩阵
+    Point2d principal_point ( ref_->camera_->cx_, ref_->camera_->cy_ );
+    int focal_length = ref_->camera_->fx_;
+    Mat essential_matrix;
+    essential_matrix = findEssentialMat ( points1, points2, focal_length, principal_point );
+    cout<<"essential_matrix is "<<endl<< essential_matrix<<endl;
+
+    //-- 计算单应矩阵
+    Mat homography_matrix;
+    homography_matrix = findHomography ( points1, points2, RANSAC, 3 );
+    cout<<"homography_matrix is "<<endl<<homography_matrix<<endl;
+
+    //-- 从本质矩阵中恢复旋转和平移信息.
+    recoverPose ( essential_matrix, points1, points2, InitR_, InitT_, focal_length, principal_point );
+    cout<<"R is "<<endl<<InitR_<<endl;
+    cout<<"t is "<<endl<<InitT_<<endl;
+}
 
 
 }

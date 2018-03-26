@@ -4,12 +4,12 @@ set(CMAKE_DEPENDS_LANGUAGES
   )
 # The set of files for implicit dependencies of each language:
 set(CMAKE_DEPENDS_CHECK_CXX
-  "/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/camera.cpp" "/home/jfoucs/MYGraduationProject/slambook/project/0.2/build/src/CMakeFiles/myslam.dir/camera.cpp.o"
-  "/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/config.cpp" "/home/jfoucs/MYGraduationProject/slambook/project/0.2/build/src/CMakeFiles/myslam.dir/config.cpp.o"
-  "/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/frame.cpp" "/home/jfoucs/MYGraduationProject/slambook/project/0.2/build/src/CMakeFiles/myslam.dir/frame.cpp.o"
-  "/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/map.cpp" "/home/jfoucs/MYGraduationProject/slambook/project/0.2/build/src/CMakeFiles/myslam.dir/map.cpp.o"
-  "/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/mappoint.cpp" "/home/jfoucs/MYGraduationProject/slambook/project/0.2/build/src/CMakeFiles/myslam.dir/mappoint.cpp.o"
-  "/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/visual_odometry.cpp" "/home/jfoucs/MYGraduationProject/slambook/project/0.2/build/src/CMakeFiles/myslam.dir/visual_odometry.cpp.o"
+  "/home/jfoucs/MYGraduationProject/Visual-Odometry/src/camera.cpp" "/home/jfoucs/MYGraduationProject/Visual-Odometry/build/src/CMakeFiles/myslam.dir/camera.cpp.o"
+  "/home/jfoucs/MYGraduationProject/Visual-Odometry/src/config.cpp" "/home/jfoucs/MYGraduationProject/Visual-Odometry/build/src/CMakeFiles/myslam.dir/config.cpp.o"
+  "/home/jfoucs/MYGraduationProject/Visual-Odometry/src/frame.cpp" "/home/jfoucs/MYGraduationProject/Visual-Odometry/build/src/CMakeFiles/myslam.dir/frame.cpp.o"
+  "/home/jfoucs/MYGraduationProject/Visual-Odometry/src/map.cpp" "/home/jfoucs/MYGraduationProject/Visual-Odometry/build/src/CMakeFiles/myslam.dir/map.cpp.o"
+  "/home/jfoucs/MYGraduationProject/Visual-Odometry/src/mappoint.cpp" "/home/jfoucs/MYGraduationProject/Visual-Odometry/build/src/CMakeFiles/myslam.dir/mappoint.cpp.o"
+  "/home/jfoucs/MYGraduationProject/Visual-Odometry/src/visual_odometry.cpp" "/home/jfoucs/MYGraduationProject/Visual-Odometry/build/src/CMakeFiles/myslam.dir/visual_odometry.cpp.o"
   )
 set(CMAKE_CXX_COMPILER_ID "GNU")
 

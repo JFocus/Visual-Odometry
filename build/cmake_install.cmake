@@ -1,4 +1,4 @@
-# Install script for directory: /home/jfoucs/MYGraduationProject/slambook/project/0.2
+# Install script for directory: /home/jfoucs/MYGraduationProject/Visual-Odometry
 
 # Set the install prefix
 if(NOT DEFINED CMAKE_INSTALL_PREFIX)
@@ -12,7 +12,7 @@ if(NOT DEFINED CMAKE_INSTALL_CONFIG_NAME)
     string(REGEX REPLACE "^[^A-Za-z0-9_]+" ""
            CMAKE_INSTALL_CONFIG_NAME "${BUILD_TYPE}")
   else()
-    set(CMAKE_INSTALL_CONFIG_NAME "Release")
+    set(CMAKE_INSTALL_CONFIG_NAME "Debug")
   endif()
   message(STATUS "Install configuration: \"${CMAKE_INSTALL_CONFIG_NAME}\"")
 endif()
@@ -34,8 +34,8 @@ endif()
 
 if(NOT CMAKE_INSTALL_LOCAL_ONLY)
   # Include the install script for each subdirectory.
-  include("/home/jfoucs/MYGraduationProject/slambook/project/0.2/build/src/cmake_install.cmake")
-  include("/home/jfoucs/MYGraduationProject/slambook/project/0.2/build/test/cmake_install.cmake")
+  include("/home/jfoucs/MYGraduationProject/Visual-Odometry/build/src/cmake_install.cmake")
+  include("/home/jfoucs/MYGraduationProject/Visual-Odometry/build/test/cmake_install.cmake")
 
 endif()
 
@@ -47,5 +47,5 @@ endif()
 
 string(REPLACE ";" "\n" CMAKE_INSTALL_MANIFEST_CONTENT
        "${CMAKE_INSTALL_MANIFEST_FILES}")
-file(WRITE "/home/jfoucs/MYGraduationProject/slambook/project/0.2/build/${CMAKE_INSTALL_MANIFEST}"
+file(WRITE "/home/jfoucs/MYGraduationProject/Visual-Odometry/build/${CMAKE_INSTALL_MANIFEST}"
      "${CMAKE_INSTALL_MANIFEST_CONTENT}")

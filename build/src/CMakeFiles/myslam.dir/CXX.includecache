@@ -9,6 +9,8 @@
 ../include/myslam/camera.h
 myslam/common_include.h
 ../include/myslam/myslam/common_include.h
+opencv2/core/core.hpp
+-
 
 ../include/myslam/common_include.h
 Eigen/Core
@@ -63,48 +65,62 @@ myslam/common_include.h
 ../include/myslam/myslam/common_include.h
 myslam/map.h
 ../include/myslam/myslam/map.h
+opencv2/highgui/highgui.hpp
+-
 opencv2/features2d/features2d.hpp
 -
+opencv2/core.hpp
+-
+opencv2/core/core.hpp
+-
 
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/camera.cpp
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/camera.cpp
 myslam/camera.h
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/myslam/camera.h
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/myslam/camera.h
 myslam/config.h
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/myslam/config.h
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/myslam/config.h
 
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/config.cpp
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/config.cpp
 myslam/config.h
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/myslam/config.h
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/myslam/config.h
 
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/frame.cpp
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/frame.cpp
 myslam/frame.h
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/myslam/frame.h
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/myslam/frame.h
 
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/map.cpp
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/map.cpp
 myslam/map.h
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/myslam/map.h
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/myslam/map.h
 
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/mappoint.cpp
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/mappoint.cpp
 myslam/common_include.h
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/myslam/common_include.h
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/myslam/common_include.h
 myslam/mappoint.h
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/myslam/mappoint.h
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/myslam/mappoint.h
 
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/visual_odometry.cpp
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/visual_odometry.cpp
+opencv2/core/core.hpp
+-
 opencv2/highgui/highgui.hpp
 -
 opencv2/imgproc/imgproc.hpp
 -
 opencv2/calib3d/calib3d.hpp
 -
+opencv2/features2d/features2d.hpp
+-
 algorithm
 -
 boost/timer.hpp
 -
+sophus/se3.h
+-
 myslam/config.h
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/myslam/config.h
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/myslam/config.h
 myslam/visual_odometry.h
-/home/jfoucs/MYGraduationProject/slambook/project/0.2/src/myslam/visual_odometry.h
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/myslam/visual_odometry.h
+myslam/camera.h
+/home/jfoucs/MYGraduationProject/Visual-Odometry/src/myslam/camera.h
 
 /home/jfoucs/Sophus/sophus/se3.h
 so3.h

@@ -1,16 +1,15 @@
 %YAML:1.0
 # data
 # the tum dataset directory, change it to yours! 
-dataset_dir: /home/jfoucs/Downloads/rgbd_dataset_freiburg1_xyz
+dataset_dir: /home/jfoucs/MYGraduationProject/Data
 
 # camera intrinsics
 # fr1
-camera.fx: 517.3
-camera.fy: 516.5
-camera.cx: 325.1
-camera.cy: 249.7
+camera.fx: 2070.8
+camera.fy: 2057.0
+camera.cx: 1906.4
+camera.cy: 1149.5
 
-camera.depth_scale: 5000
 
 # VO paras
 number_of_features: 500

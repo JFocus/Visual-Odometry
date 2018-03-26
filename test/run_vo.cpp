@@ -28,16 +28,14 @@ int main ( int argc, char** argv )
         return 1;
     }
 
-    vector<string> rgb_files, depth_files;
-    vector<double> rgb_times, depth_times;
+    vector<string> rgb_files ;
+    vector<double> rgb_times ;
     while ( !fin.eof() )
     {
-        string rgb_time, rgb_file, depth_time, depth_file;
-        fin>>rgb_time>>rgb_file>>depth_time>>depth_file;
+        string rgb_time, rgb_file;
+        fin>>rgb_time>>rgb_file;
         rgb_times.push_back ( atof ( rgb_time.c_str() ) );
-        depth_times.push_back ( atof ( depth_time.c_str() ) );
-        rgb_files.push_back ( dataset_dir+"/"+rgb_file );
-        depth_files.push_back ( dataset_dir+"/"+depth_file );
+        rgb_files.push_back ( rgb_file );
 
         if ( fin.good() == false )
             break;
@@ -61,13 +59,11 @@ int main ( int argc, char** argv )
     for ( int i=0; i<rgb_files.size(); i++ )
     {
         Mat color = cv::imread ( rgb_files[i] );
-        Mat depth = cv::imread ( depth_files[i], -1 );
-        if ( color.data==nullptr || depth.data==nullptr )
+        if ( color.data==nullptr )
             break;
         myslam::Frame::Ptr pFrame = myslam::Frame::createFrame();
         pFrame->camera_ = camera;
         pFrame->color_ = color;
-        pFrame->depth_ = depth;
         pFrame->time_stamp_ = rgb_times[i];
 
         boost::timer timer;
