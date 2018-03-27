@@ -6,6 +6,8 @@ using namespace std;
 #include <opencv2/videoio.hpp>
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
+
+#define ratio 3
 int main(int argc , char** argv)
 {
 
@@ -24,7 +26,7 @@ cv::namedWindow("Extracted Frame");
 
 int delay = 1000/rate;
 
-ofstream FrameRecord("associate.txt");
+ofstream FrameRecord("/home/jfoucs/MYGraduationProject/Data/associate.txt");
 
 
 while(!stop)
@@ -34,12 +36,12 @@ while(!stop)
 	if(!capture.read(frame))
 		break;
 //	cv::imshow("Extracted Frame",frame);
-	if( !(FrameNum % 30) )
+	if( !(FrameNum % ratio) )
 	{
-		cv::imwrite("/home/jfoucs/MYGraduationProject/FrameExtract/" + std::to_string( (FrameNum/30) ) + ".png" , frame);
+		cv::imwrite("/home/jfoucs/MYGraduationProject/FrameExtract/" + std::to_string( (FrameNum/ratio) ) + ".png" , frame);
 		if(FrameRecord.is_open())
 			{
-				FrameRecord << std::to_string((FrameNum/30)) << " " << "/home/jfoucs/MYGraduationProject/FrameExtract/" << std::to_string((FrameNum/30)) << ".png" << "\n";
+				FrameRecord << std::to_string((FrameNum/ratio)) << " " << "/home/jfoucs/MYGraduationProject/FrameExtract/" << std::to_string((FrameNum/ratio)) << ".png" << "\n";
 			}
 	}
 	

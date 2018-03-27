@@ -71,10 +71,14 @@ bool VisualOdometry::addFrame ( Frame::Ptr frame )
     {
         state_ = OK;
         curr_ = frame;
+	Mat img_goodmatches;
         //extract features from second frame
         extractKeyPoints();
         computeDescriptors();
         featureMatching(); 
+	drawMatches(ref_->color_, keypoints_ref_, curr_->color_, keypoints_curr_, feature_matches_, img_goodmatches);
+	imshow("good matches", img_goodmatches);
+	waitKey(0);
         pose_estimation_2d2d ();
         triangulation ();
 
