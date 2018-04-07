@@ -86,9 +86,10 @@ bool VisualOdometry::addFrame ( Frame::Ptr frame )
 	descriptors_ref_ = Mat();
         for(cv::DMatch m: feature_matches_)
 	{
-	  descriptors_ref_.push_back( descriptors_curr_.row(m.queryIdx) );
+	  descriptors_ref_.push_back( descriptors_curr_.row(m.trainIdx) );
 	}  
         cout << "number of descriptors after triangulation is "<< descriptors_ref_.size();
+	break;
     }
     case OK:
     {
@@ -266,6 +267,7 @@ void VisualOdometry::addKeyFrame()
 void VisualOdometry::triangulation ()
 {
     vector<Point3f> points;
+    pts_3d_ref_.clear();
     Mat T1 = (Mat_<float> (3,4) <<
         1,0,0,0,
         0,1,0,0,
