@@ -265,6 +265,7 @@ void VisualOdometry::addKeyFrame()
 
 void VisualOdometry::triangulation ()
 {
+    vector<Point3f> points;
     Mat T1 = (Mat_<float> (3,4) <<
         1,0,0,0,
         0,1,0,0,
@@ -300,7 +301,17 @@ void VisualOdometry::triangulation ()
             x.at<float>(1,0), 
             x.at<float>(2,0) 
         );
-       pts_3d_ref_.push_back( p );
+       points.push_back( p );
+    }
+    for(int i = 0; i<feature_matches_.size(); i++)
+    {
+      Mat pt2_trans = InitR_ * (Mat_<double>(3,1) << points[i].x, points[i].y, points[i].z) + InitT_;
+      Point3f p3d (
+	pt2_trans.at<float>(0,0),
+        pt2_trans.at<float>(1,0),
+        pt2_trans.at<float>(2,0)
+      );
+      pts_3d_ref_.push_back(p3d);
     }
 }
 
