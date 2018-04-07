@@ -64,29 +64,31 @@ bool VisualOdometry::addFrame ( Frame::Ptr frame )
         map_->insertKeyFrame ( frame );
         // extract features from first frame 
         extractKeyPoints_ref();
+	cout << "number of keypoints in the first frame" <<keypoints_ref_.size() <<endl;
         computeDescriptors_ref();
+	cout << "number of descriptors in the first frame" << descriptors_ref_.size() << endl;
         break;
     }
     case INITIALIZING_Get_Depth:
     {
         state_ = OK;
         curr_ = frame;
-	Mat img_goodmatches;
         //extract features from second frame
         extractKeyPoints();
+	cout << "number of keypoints in the second frame" <<keypoints_curr_.size() <<endl;
         computeDescriptors();
+	cout << "number of descriptors in the second frame" << descriptors_curr_.size() << endl;
         featureMatching(); 
-	drawMatches(ref_->color_, keypoints_ref_, curr_->color_, keypoints_curr_, feature_matches_, img_goodmatches);
-	imshow("good matches", img_goodmatches);
-	waitKey(0);
         pose_estimation_2d2d ();
         triangulation ();
-
-        for ( size_t i=0; i<pts_3d_ref_.size(); i++ )
-            {
-               descriptors_ref_.push_back(descriptors_curr_.row(i));
-            }
-
+	cout<<"number of 3d points is"<<pts_3d_ref_.size()<<endl;
+        ref_ = curr_;
+	descriptors_ref_ = Mat();
+        for(cv::DMatch m: feature_matches_)
+	{
+	  descriptors_ref_.push_back( descriptors_curr_.row(m.queryIdx) );
+	}  
+        cout << "number of descriptors after triangulation is "<< descriptors_ref_.size();
     }
     case OK:
     {
@@ -150,6 +152,9 @@ void VisualOdometry::computeDescriptors_ref()
 void VisualOdometry::featureMatching()
 {
     // match desp_ref and desp_curr, use OpenCV's brute force match 
+    static int i = 0;
+    string name;
+    Mat img_goodmatches;
     vector<cv::DMatch> matches;
     cv::BFMatcher matcher ( cv::NORM_HAMMING );
     matcher.match ( descriptors_ref_, descriptors_curr_, matches );
@@ -160,7 +165,7 @@ void VisualOdometry::featureMatching()
     {
         return m1.distance < m2.distance;
     } )->distance;
-
+    //cout << "minimum distance is" << min_dis <<endl;
     feature_matches_.clear();
     for ( cv::DMatch& m : matches )
     {
@@ -169,7 +174,12 @@ void VisualOdometry::featureMatching()
             feature_matches_.push_back(m);
         }
     }
+    drawMatches(ref_->color_, keypoints_ref_, curr_->color_, keypoints_curr_, feature_matches_, img_goodmatches);
+    //imshow("good matches", img_goodmatches);waitKey(0);
+    name = "good_matches" + std::to_string(i) + ".png";
+    imwrite(name, img_goodmatches);    
     cout<<"good matches: "<<feature_matches_.size()<<endl;
+    i++;
 }
 
 void VisualOdometry::setRef3DPoints()
@@ -184,7 +194,7 @@ void VisualOdometry::setRef3DPoints()
     
     Vector3d T;
     T << T_c_r_estimated_.translation()(0),T_c_r_estimated_.translation()(1), T_c_r_estimated_.translation()(2);
-    for ( size_t i=0; i<pts_3d_ref_.size(); i++ )
+    for ( size_t i=0; i<keypoints_curr_.size(); i++ )
     {
         
             descriptors_ref_.push_back(descriptors_curr_.row(i));
