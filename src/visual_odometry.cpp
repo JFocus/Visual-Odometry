@@ -22,6 +22,7 @@
 #include <opencv2/imgproc/imgproc.hpp>
 #include <opencv2/calib3d/calib3d.hpp>
 #include <opencv2/features2d/features2d.hpp>
+#include <opencv2/video/tracking.hpp>
 #include <algorithm>
 #include <boost/timer.hpp>
 #include <sophus/se3.h>
@@ -62,41 +63,31 @@ bool VisualOdometry::addFrame ( Frame::Ptr frame )
         state_ = INITIALIZING_Get_Depth;
         ref_ = frame;
         map_->insertKeyFrame ( frame );
-        // extract features from first frame 
-        extractKeyPoints_ref();
-	cout << "number of keypoints in the first frame" <<keypoints_ref_.size() <<endl;
-        computeDescriptors_ref();
-	cout << "number of descriptors in the first frame" << descriptors_ref_.size() << endl;
+	//detect keypoints in the first frame
+	OP_extractKeyPoints();
+        cout << "number of keypoints detected is" << OP_Keypoints_.size() << endl;
         break;
     }
     case INITIALIZING_Get_Depth:
     {
         state_ = OK;
         curr_ = frame;
-        //extract features from second frame
-        extractKeyPoints();
-	cout << "number of keypoints in the second frame" <<keypoints_curr_.size() <<endl;
-        computeDescriptors();
-	cout << "number of descriptors in the second frame" << descriptors_curr_.size() << endl;
-        featureMatching(); 
+	OP_LKCal_Init();
         pose_estimation_2d2d ();
         triangulation ();
 	cout<<"number of 3d points is"<<pts_3d_ref_.size()<<endl;
         ref_ = curr_;
-	descriptors_ref_ = Mat();
-        for(cv::DMatch m: feature_matches_)
-	{
-	  descriptors_ref_.push_back( descriptors_curr_.row(m.trainIdx) );
-	}  
-        cout << "number of descriptors after triangulation is "<< descriptors_ref_.size();
+	
+	OP_Keypoints_ref_.clear();
+	for (auto kp:OP_Keypoints_)
+	  OP_Keypoints_ref_.push_back(kp);
+	
 	break;
     }
     case OK:
     {
         curr_ = frame;
-        extractKeyPoints();
-        computeDescriptors();
-        featureMatching();
+	OP_LKCal();
         poseEstimationPnP();
         if ( checkEstimatedPose() == true ) // a good estimation
         {
@@ -205,23 +196,14 @@ void VisualOdometry::setRef3DPoints()
 
 void VisualOdometry::poseEstimationPnP()
 {
-    // construct the 3d 2d observations
-    vector<cv::Point3f> pts3d;
-    vector<cv::Point2f> pts2d;
-    
-    for ( cv::DMatch m:feature_matches_ )
-    {
-        pts3d.push_back( pts_3d_ref_[m.queryIdx] );
-        pts2d.push_back( keypoints_curr_[m.trainIdx].pt );
-    }
-    
+  
     Mat K = ( cv::Mat_<double>(3,3)<<
         ref_->camera_->fx_, 0, ref_->camera_->cx_,
         0, ref_->camera_->fy_, ref_->camera_->cy_,
         0,0,1
     );
     Mat rvec, tvec, inliers;
-    cv::solvePnPRansac( pts3d, pts2d, K, Mat(), rvec, tvec, false, 100, 4.0, 0.99, inliers );
+    cv::solvePnPRansac( pts_3d_ref_, OP_Keypoints_curr_, K, Mat(), rvec, tvec, false, 100, 4.0, 0.99, inliers );
     num_inliers_ = inliers.rows;
     cout<<"pnp inliers: "<<num_inliers_<<endl;
     T_c_r_estimated_ = SE3(
@@ -284,10 +266,10 @@ void VisualOdometry::triangulation ()
         0,0,1
     );
     vector<Point2f> pts_1, pts_2;
-    for ( DMatch m:feature_matches_ )
+    for ( int i = 0; i < OP_Keypoints_.size(); i++ )
     {
-        pts_1.push_back ( ref_->camera_->pixel2cam2d( keypoints_ref_[m.queryIdx].pt, K) );
-        pts_2.push_back ( curr_->camera_->pixel2cam2d( keypoints_curr_[m.trainIdx].pt, K) );
+        pts_1.push_back ( ref_->camera_->pixel2cam2d( OP_Keypoints_ref_[i], K) );
+        pts_2.push_back ( curr_->camera_->pixel2cam2d( OP_Keypoints_curr_[i], K) );
     }
     
     Mat pts_4d;
@@ -305,7 +287,8 @@ void VisualOdometry::triangulation ()
         );
        points.push_back( p );
     }
-    for(int i = 0; i<feature_matches_.size(); i++)
+    
+    for(int i = 0; i<OP_Keypoints_.size(); i++)
     {
       Mat pt2_trans = InitR_ * (Mat_<double>(3,1) << points[i].x, points[i].y, points[i].z) + InitT_;
       Point3f p3d (
@@ -325,37 +308,114 @@ void VisualOdometry::pose_estimation_2d2d ()
         0, ref_->camera_->fy_, ref_->camera_->cy_,
         0,0,1);
 
-  
-    vector<Point2f> points1;
-    vector<Point2f> points2;
-
-    for ( int i = 0; i < ( int ) feature_matches_.size(); i++ )
-    {
-        points1.push_back ( keypoints_curr_[feature_matches_[i].queryIdx].pt );
-        points2.push_back ( keypoints_ref_[feature_matches_[i].trainIdx].pt );
-    }
 
 
     Mat fundamental_matrix;
-    fundamental_matrix = findFundamentalMat ( points1, points2, CV_FM_8POINT );
+    fundamental_matrix = findFundamentalMat ( OP_Keypoints_ref_, OP_Keypoints_curr_, CV_FM_8POINT );
     cout<<"fundamental_matrix is "<<endl<< fundamental_matrix<<endl;
 
     //-- 计算本质矩阵
     Point2d principal_point ( ref_->camera_->cx_, ref_->camera_->cy_ );
     int focal_length = ref_->camera_->fx_;
     Mat essential_matrix;
-    essential_matrix = findEssentialMat ( points1, points2, focal_length, principal_point );
+    essential_matrix = findEssentialMat ( OP_Keypoints_ref_, OP_Keypoints_curr_, focal_length, principal_point );
     cout<<"essential_matrix is "<<endl<< essential_matrix<<endl;
 
     //-- 计算单应矩阵
     Mat homography_matrix;
-    homography_matrix = findHomography ( points1, points2, RANSAC, 3 );
+    homography_matrix = findHomography ( OP_Keypoints_ref_, OP_Keypoints_curr_, RANSAC, 3 );
     cout<<"homography_matrix is "<<endl<<homography_matrix<<endl;
 
     //-- 从本质矩阵中恢复旋转和平移信息.
-    recoverPose ( essential_matrix, points1, points2, InitR_, InitT_, focal_length, principal_point );
+    recoverPose ( essential_matrix, OP_Keypoints_ref_, OP_Keypoints_curr_, InitR_, InitT_, focal_length, principal_point );
     cout<<"R is "<<endl<<InitR_<<endl;
     cout<<"t is "<<endl<<InitT_<<endl;
+}
+
+void VisualOdometry::OP_extractKeyPoints()
+{
+    vector<cv::KeyPoint> kps;
+    cv::Ptr<cv::FastFeatureDetector> detector = cv::FastFeatureDetector::create();
+    detector->detect( ref_->color_, kps );
+    for ( auto kp:kps )
+      OP_Keypoints_.push_back( kp.pt );  
+    for ( auto kp:OP_Keypoints_)
+      OP_Keypoints_ref_.push_back(kp);
+}
+
+void VisualOdometry::OP_LKCal_Init()
+{
+    static int imagindex = 0;
+    string name;
+    cv::calcOpticalFlowPyrLK(ref_->color_ , curr_->color_ , OP_Keypoints_ref_, OP_Keypoints_curr_, OP_status_, OP_error_);
+    int i = 0;
+    OP_Keypoints_ref_.clear();
+    for( auto iter = OP_Keypoints_.begin(); iter != OP_Keypoints_.end() ; i++)
+    {
+      if(OP_status_[i] == 0)
+      {
+	iter = OP_Keypoints_.erase(iter);
+	continue;
+      }
+      OP_Keypoints_ref_.push_back(*iter);
+      *iter = OP_Keypoints_curr_[i];
+      iter++;
+    }
+    
+    OP_Keypoints_curr_.clear();
+    for (auto kp:OP_Keypoints_)
+      OP_Keypoints_curr_.push_back(kp);
+    
+    cout << "size of keypoint list is "<< OP_Keypoints_.size() << endl;
+    cout << "size of reference points is" << OP_Keypoints_ref_.size() << endl;
+    cout << "size of current points is" << OP_Keypoints_curr_.size() << endl;
+    cv::Mat img_show = curr_->color_.clone();
+    for (auto kp:OP_Keypoints_)
+      cv::circle(img_show, kp, 10, cv::Scalar(0, 240, 0) , 1);
+    name = "good_matches" + std::to_string(imagindex) + ".png";
+    imwrite(name, img_show);   
+    imagindex++;
+}
+
+void VisualOdometry::OP_LKCal()
+{
+    static int imagindex = 0;
+    string name;
+    vector<cv::Point3f>     pts_3d_ref_tmp;
+    cv::calcOpticalFlowPyrLK(ref_->color_ , curr_->color_ , OP_Keypoints_ref_, OP_Keypoints_curr_, OP_status_, OP_error_);
+    int i = 0;
+    OP_Keypoints_ref_.clear();
+    for( auto iter = OP_Keypoints_.begin(); iter != OP_Keypoints_.end() ; i++)
+    {
+      if(OP_status_[i] == 0)
+      {
+	iter = OP_Keypoints_.erase(iter);
+	continue;
+      }
+      pts_3d_ref_tmp.push_back(pts_3d_ref_[i]);
+      OP_Keypoints_ref_.push_back(*iter);
+      *iter = OP_Keypoints_curr_[i];
+      iter++;
+    }
+    
+    pts_3d_ref_.clear();
+    for (int i = 0; i < pts_3d_ref_tmp.size(); i++)
+      pts_3d_ref_.push_back(pts_3d_ref_tmp[i]);
+    
+    OP_Keypoints_curr_.clear();
+    for (auto kp:OP_Keypoints_)
+      OP_Keypoints_curr_.push_back(kp);
+    
+    cout << "number of 3d points after LK is" << pts_3d_ref_.size()<< endl;
+    cout << "size of keypoint list is "<< OP_Keypoints_.size() << endl;
+    cout << "size of reference points is" << OP_Keypoints_ref_.size() << endl;
+    cout << "size of current points is" << OP_Keypoints_curr_.size() << endl;
+    cv::Mat img_show = curr_->color_.clone();
+    for (auto kp:OP_Keypoints_)
+      cv::circle(img_show, kp, 10, cv::Scalar(0, 240, 0) , 1);
+    name = "good_matches_" + std::to_string(imagindex) + ".png";
+    imwrite(name, img_show);   
+    imagindex++;
 }
 
 

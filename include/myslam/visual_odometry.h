@@ -58,6 +58,12 @@ public:
     Mat                     InitT_;    //translation matrix when initializing
     vector<cv::DMatch>      feature_matches_;
     
+    list <cv::Point2f> OP_Keypoints_;
+    vector<cv::Point2f> OP_Keypoints_ref_; 
+    vector<cv::Point2f> OP_Keypoints_curr_;
+    vector<unsigned char> OP_status_;
+    vector<float> OP_error_;
+    
     SE3 T_c_r_estimated_;  // the estimated pose of current frame 
     int num_inliers_;        // number of inlier features in icp
     int num_lost_;           // number of lost times
@@ -94,6 +100,12 @@ protected:
     bool checkKeyFrame();
     void triangulation ();
     void pose_estimation_2d2d ();
+    
+    //Optical flow matching functions
+    void OP_extractKeyPoints();
+    void OP_LKCal_Init();
+    void OP_LKCal();
+    
 
 };
 }
