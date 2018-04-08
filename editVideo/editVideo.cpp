@@ -7,7 +7,7 @@ using namespace std;
 #include <opencv2/core.hpp>
 #include <opencv2/highgui.hpp>
 
-#define ratio 200
+#define ratio 3
 int main(int argc , char** argv)
 {
 

@@ -70,7 +70,7 @@ bool VisualOdometry::addFrame ( Frame::Ptr frame )
     }
     case INITIALIZING_Get_Depth:
     {
-        state_ = OK;
+        state_ = OK; 
         curr_ = frame;
 	OP_LKCal_Init();
         pose_estimation_2d2d ();
@@ -93,6 +93,9 @@ bool VisualOdometry::addFrame ( Frame::Ptr frame )
         {
             curr_->T_c_w_ = T_c_r_estimated_ * ref_->T_c_w_;  // T_c_w = T_c_r*T_r_w 
             ref_ = curr_;
+	    OP_Keypoints_ref_.clear();
+	    for (auto kp:OP_Keypoints_)
+	      OP_Keypoints_ref_.push_back(kp);
             setRef3DPoints();
             num_lost_ = 0;
             if ( checkKeyFrame() == true ) // is a key-frame
@@ -176,20 +179,31 @@ void VisualOdometry::featureMatching()
 
 void VisualOdometry::setRef3DPoints()
 {
-    // select the features with depth measurements 
-    descriptors_ref_ = Mat();
+    vector<Point3d> points;
     Mat R = ( cv::Mat_ <double>(3,3)<<
         T_c_r_estimated_.rotation_matrix()(0,1) , T_c_r_estimated_.rotation_matrix()(0,2), T_c_r_estimated_.rotation_matrix()(0,3),
 	T_c_r_estimated_.rotation_matrix()(1,1) , T_c_r_estimated_.rotation_matrix()(1,2), T_c_r_estimated_.rotation_matrix()(1,3),
 	T_c_r_estimated_.rotation_matrix()(2,1) , T_c_r_estimated_.rotation_matrix()(2,2), T_c_r_estimated_.rotation_matrix()(2,3) 
     );
     
-    Vector3d T;
-    T << T_c_r_estimated_.translation()(0),T_c_r_estimated_.translation()(1), T_c_r_estimated_.translation()(2);
-    for ( size_t i=0; i<keypoints_curr_.size(); i++ )
+    Mat T = (cv::Mat_<double>(3,1)<<
+       T_c_r_estimated_.translation()(0),T_c_r_estimated_.translation()(1), T_c_r_estimated_.translation()(2)
+    );
+    
+    for ( size_t i=0; i<OP_Keypoints_.size(); i++ )
     {
-        
-            descriptors_ref_.push_back(descriptors_curr_.row(i));
+        Mat pt3_trans = R * (Mat_<double>(3,1) << pts_3d_ref_[i].x , pts_3d_ref_[i].y , pts_3d_ref_[i].z) + T;
+	Point3d p3d (
+	  pt3_trans.at<double>(0,0),
+          pt3_trans.at<double>(1,0),
+          pt3_trans.at<double>(2,0)
+	);
+	points.push_back(p3d);
+    }
+    pts_3d_ref_.clear();
+    for (int i = 0; i< pts_3d_ref_.size() ; i++)
+    {
+      pts_3d_ref_.push_back(points[i]);
     }
     
 }
@@ -203,7 +217,7 @@ void VisualOdometry::poseEstimationPnP()
         0,0,1
     );
     Mat rvec, tvec, inliers;
-    cv::solvePnPRansac( pts_3d_ref_, OP_Keypoints_curr_, K, Mat(), rvec, tvec, false, 100, 4.0, 0.99, inliers );
+    cv::solvePnPRansac( pts_3d_ref_, OP_Keypoints_curr_, K, Mat(), rvec, tvec, false, 1000, 4.0, 0.99, inliers );
     num_inliers_ = inliers.rows;
     cout<<"pnp inliers: "<<num_inliers_<<endl;
     T_c_r_estimated_ = SE3(
@@ -222,11 +236,11 @@ bool VisualOdometry::checkEstimatedPose()
     }
     // if the motion is too large, it is probably wrong
     Sophus::Vector6d d = T_c_r_estimated_.log();
-    if ( d.norm() > 5.0 )
-    {
-        cout<<"reject because motion is too large: "<<d.norm()<<endl;
-        return false;
-    }
+//    if ( d.norm() > 5.0 )
+  //  {
+    //    cout<<"reject because motion is too large: "<<d.norm()<<endl;
+      //  return false;
+    //}
     return true;
 }
 
@@ -382,6 +396,7 @@ void VisualOdometry::OP_LKCal()
     static int imagindex = 0;
     string name;
     vector<cv::Point3f>     pts_3d_ref_tmp;
+    OP_Keypoints_curr_.clear();
     cv::calcOpticalFlowPyrLK(ref_->color_ , curr_->color_ , OP_Keypoints_ref_, OP_Keypoints_curr_, OP_status_, OP_error_);
     int i = 0;
     OP_Keypoints_ref_.clear();
